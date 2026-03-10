@@ -1,0 +1,53 @@
+name: cloud-tts-api
+
+x-tts-base: &tts-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: runtime
+  image: cloud-tts-api:latest
+  environment:
+    PYTHONUNBUFFERED: "1"
+  volumes:
+    - ./key.json:/app/key.json:ro
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "python", "-c",
+           "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+    interval: 30s
+    timeout:  10s
+    retries:  3
+    start_period: 15s
+
+
+services:
+
+  tts:
+    <<: *tts-base
+    container_name: tts-api
+    ports:
+      - "8000:8000"
+    command: >
+      uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 4
+      --loop uvloop
+      --http httptools
+    profiles: ["prod", ""]
+
+  tts-dev:
+    <<: *tts-base
+    container_name: tts-api-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./key.json:/app/key.json:ro
+      - .:/app
+    command: >
+      uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --log-level debug
+    profiles: ["dev"]
