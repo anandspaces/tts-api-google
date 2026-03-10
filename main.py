@@ -56,7 +56,13 @@ def synthesize(
     voice_name    : Specific voice name, e.g. "en-US-Neural2-F".
                     When provided, language_code is still required.
     """
-    ssml_gender = GENDER_MAP.get(gender.lower(), texttospeech.SsmlVoiceGender.NEUTRAL)
+    # When a specific voice_name is given, omit ssml_gender entirely —
+    # Neural2 / Journey / Studio voices reject NEUTRAL and the name already
+    # encodes the gender, so letting Google infer it avoids a 400 error.
+    if voice_name:
+        ssml_gender = texttospeech.SsmlVoiceGender.SSML_VOICE_GENDER_UNSPECIFIED
+    else:
+        ssml_gender = GENDER_MAP.get(gender.lower(), texttospeech.SsmlVoiceGender.NEUTRAL)
 
     logger.debug(
         f"[SYNTHESIZE] Starting | lang={language_code} gender={gender} "
